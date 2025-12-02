@@ -29,7 +29,7 @@ The only requirement is having Node.js & Bun installed - [install Node.js with n
 
 Follow these steps:
 
-```bash
+\`\`\`bash
 # Step 1: Clone the repository using the project's Git URL.
 git clone <YOUR_GIT_URL>
 
@@ -47,7 +47,7 @@ bun run start-web
 bun run start  # then press "i" in the terminal to open iOS Simulator
 # Option B (if supported by your environment):
 bun run start -- --ios
-```
+\`\`\`
 
 ### **Edit a file directly in GitHub**
 
@@ -93,13 +93,13 @@ Learn more: [Expo Custom Development Builds Guide](https://docs.expo.dev/develop
 
 If you have XCode (iOS) or Android Studio installed:
 
-```bash
+\`\`\`bash
 # iOS Simulator
 bun run start -- --ios
 
 # Android Emulator
 bun run start -- --android
-```
+\`\`\`
 
 ## How can I deploy this project?
 
@@ -107,26 +107,26 @@ bun run start -- --android
 
 1. **Install EAS CLI**:
 
-   ```bash
+   \`\`\`bash
    bun i -g @expo/eas-cli
-   ```
+   \`\`\`
 
 2. **Configure your project**:
 
-   ```bash
+   \`\`\`bash
    eas build:configure
-   ```
+   \`\`\`
 
 3. **Build for iOS**:
 
-   ```bash
+   \`\`\`bash
    eas build --platform ios
-   ```
+   \`\`\`
 
 4. **Submit to App Store**:
-   ```bash
+   \`\`\`bash
    eas submit --platform ios
-   ```
+   \`\`\`
 
 For detailed instructions, visit [Expo's App Store deployment guide](https://docs.expo.dev/submit/ios/).
 
@@ -134,14 +134,14 @@ For detailed instructions, visit [Expo's App Store deployment guide](https://doc
 
 1. **Build for Android**:
 
-   ```bash
+   \`\`\`bash
    eas build --platform android
-   ```
+   \`\`\`
 
 2. **Submit to Google Play**:
-   ```bash
+   \`\`\`bash
    eas submit --platform android
-   ```
+   \`\`\`
 
 For detailed instructions, visit [Expo's Google Play deployment guide](https://docs.expo.dev/submit/android/).
 
@@ -151,15 +151,15 @@ Your React Native app can also run on the web:
 
 1. **Build for web**:
 
-   ```bash
+   \`\`\`bash
    eas build --platform web
-   ```
+   \`\`\`
 
 2. **Deploy with EAS Hosting**:
-   ```bash
+   \`\`\`bash
    eas hosting:configure
    eas hosting:deploy
-   ```
+   \`\`\`
 
 Alternative web deployment options:
 
@@ -180,7 +180,7 @@ This template includes:
 
 ## Project Structure
 
-```
+\`\`\`
 ├── app/                    # App screens (Expo Router)
 │   ├── (tabs)/            # Tab navigation screens
 │   │   ├── _layout.tsx    # Tab layout configuration
@@ -194,7 +194,7 @@ This template includes:
 ├── app.json             # Expo configuration
 ├── package.json         # Dependencies and scripts
 └── tsconfig.json        # TypeScript configuration
-```
+\`\`\`
 
 ## Custom Development Builds
 
@@ -209,7 +209,7 @@ For advanced native features, you'll need to create a Custom Development Build i
 
 ### **Creating a Custom Development Build**
 
-```bash
+\`\`\`bash
 # Install EAS CLI
 bun i -g @expo/eas-cli
 
@@ -222,7 +222,7 @@ eas build --profile development --platform android
 
 # Install the development build on your device and start developing
 bun start --dev-client
-```
+\`\`\`
 
 **Learn more:**
 
