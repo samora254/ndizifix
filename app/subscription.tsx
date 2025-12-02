@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Modal, TextInput, Platform, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -53,6 +53,8 @@ export default function SubscriptionScreen() {
   const [discountError, setDiscountError] = useState('');
   const [isApplyingDiscount, setIsApplyingDiscount] = useState(false);
   const [discountSuccessMessage, setDiscountSuccessMessage] = useState('');
+
+  const isWeb = Platform.OS === 'web';
 
   const handleApplyDiscount = async () => {
     if (!discountCode.trim()) {
@@ -135,12 +137,27 @@ export default function SubscriptionScreen() {
         
         const url = `https://www.sandbox.paypal.com/webapps/billing/plans/subscribe?plan_id=P-SUBSCRIPTION-PLAN-ID&vault=true&client-id=${clientId}&return_url=${returnUrl}&cancel_url=${cancelUrl}`;
         
-        setPaypalUrl(url);
-        setShowPayPalWebView(true);
+        if (isWeb) {
+          Alert.alert(
+            'Complete Payment on Mobile',
+            'PayPal payment is only available on mobile devices (iOS/Android). Please scan the QR code to test on your phone, or use the Expo Go app.',
+            [
+              {
+                text: 'Open in Browser',
+                onPress: () => Linking.openURL(url),
+              },
+              { text: 'Cancel', style: 'cancel' },
+            ]
+          );
+          setIsProcessing(false);
+        } else {
+          setPaypalUrl(url);
+          setShowPayPalWebView(true);
+          setIsProcessing(false);
+        }
       } catch (error) {
         console.error('[Subscription] Error initiating PayPal payment:', error);
         Alert.alert('Payment Error', 'Failed to initiate PayPal payment. Please try again.');
-      } finally {
         setIsProcessing(false);
       }
     }
