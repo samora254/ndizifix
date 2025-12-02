@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Platform, StyleSheet, AppState, AppStateStatus } from "react-native";
 import { AppStateProvider } from "@/contexts/AppStateContext";
 import { AdminProvider } from "@/contexts/AdminContext";
+import { trpc, trpcClient } from "@/lib/trpc";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -84,15 +85,17 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AdminProvider>
-        <AppStateProvider>
-          <GestureHandlerRootView style={styles.container}>
-            <RootLayoutNav />
-          </GestureHandlerRootView>
-        </AppStateProvider>
-      </AdminProvider>
-    </QueryClientProvider>
+    <trpc.Provider client={trpcClient} queryClient={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <AdminProvider>
+          <AppStateProvider>
+            <GestureHandlerRootView style={styles.container}>
+              <RootLayoutNav />
+            </GestureHandlerRootView>
+          </AppStateProvider>
+        </AdminProvider>
+      </QueryClientProvider>
+    </trpc.Provider>
   );
 }
 
