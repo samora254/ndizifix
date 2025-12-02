@@ -83,7 +83,7 @@ export default function SubscriptionScreen() {
       
       <TouchableOpacity 
         style={styles.backButton}
-        onPress={() => router.back()}
+        onPress={() => router.push('/(tabs)/(home)')}
       >
         <ArrowLeft size={24} color="#FFFFFF" />
       </TouchableOpacity>
