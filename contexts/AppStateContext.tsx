@@ -82,7 +82,8 @@ export const [AppStateProvider, useAppState] = createContextHook(() => {
 
         authSubscription = subscription;
       } catch (error) {
-        console.error('[Auth] Error initializing auth:', error);
+        const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+        console.error('[Auth] Error initializing auth:', errorMessage, error);
       }
     };
 
@@ -237,7 +238,8 @@ export const [AppStateProvider, useAppState] = createContextHook(() => {
         return false;
       }
     } catch (error) {
-      console.error('[Subscription] Error checking subscription:', error);
+      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+      console.error('[Subscription] Error checking subscription:', errorMessage, error);
       return false;
     }
   }, [user]);

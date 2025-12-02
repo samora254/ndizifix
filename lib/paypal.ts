@@ -1,5 +1,5 @@
 import Constants from 'expo-constants';
-import { supabase } from './supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const PAYPAL_CLIENT_ID = process.env.EXPO_PUBLIC_PAYPAL_CLIENT_ID || 
   Constants.expoConfig?.extra?.paypalClientId || 
@@ -15,6 +15,18 @@ export const getPayPalApprovalUrl = (amount: number, currency: string): string =
   return `${baseUrl}?client-id=${PAYPAL_CLIENT_ID}&vault=true&intent=subscription&return_url=${returnUrl}&cancel_url=${cancelUrl}`;
 };
 
+interface SubscriptionData {
+  userId: string;
+  paymentMethod: 'paypal' | 'mpesa';
+  transactionId: string;
+  status: 'active' | 'expired';
+  startDate: string;
+  expiryDate: string;
+  updatedAt: string;
+}
+
+const SUBSCRIPTION_STORAGE_KEY = '@subscription_data';
+
 export const saveSubscription = async (userId: string, paymentMethod: 'paypal' | 'mpesa', transactionId: string) => {
   try {
     console.log('[Subscription] Saving subscription for user:', userId);
@@ -22,29 +34,26 @@ export const saveSubscription = async (userId: string, paymentMethod: 'paypal' |
     const expiryDate = new Date();
     expiryDate.setMonth(expiryDate.getMonth() + 1);
     
-    const { data, error } = await supabase
-      .from('subscriptions')
-      .upsert({
-        user_id: userId,
-        payment_method: paymentMethod,
-        transaction_id: transactionId,
-        status: 'active',
-        start_date: new Date().toISOString(),
-        expiry_date: expiryDate.toISOString(),
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'user_id',
-      });
+    const subscriptionData: SubscriptionData = {
+      userId,
+      paymentMethod,
+      transactionId,
+      status: 'active',
+      startDate: new Date().toISOString(),
+      expiryDate: expiryDate.toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
 
-    if (error) {
-      console.error('[Subscription] Error saving subscription:', error);
-      throw error;
-    }
+    await AsyncStorage.setItem(
+      `${SUBSCRIPTION_STORAGE_KEY}_${userId}`,
+      JSON.stringify(subscriptionData)
+    );
 
     console.log('[Subscription] Subscription saved successfully');
-    return data;
+    return subscriptionData;
   } catch (error) {
-    console.error('[Subscription] Error:', error);
+    const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+    console.error('[Subscription] Error saving:', errorMessage);
     throw error;
   }
 };
@@ -53,42 +62,39 @@ export const checkSubscription = async (userId: string): Promise<{ isActive: boo
   try {
     console.log('[Subscription] Checking subscription for user:', userId);
     
-    const { data, error } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('status', 'active')
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        console.log('[Subscription] No active subscription found');
-        return { isActive: false };
-      }
-      console.error('[Subscription] Error checking subscription:', error);
-      throw error;
-    }
-
-    if (!data) {
+    const storedData = await AsyncStorage.getItem(`${SUBSCRIPTION_STORAGE_KEY}_${userId}`);
+    
+    if (!storedData) {
+      console.log('[Subscription] No subscription found');
       return { isActive: false };
     }
 
-    const expiryDate = new Date(data.expiry_date);
+    const data: SubscriptionData = JSON.parse(storedData);
+
+    if (data.status !== 'active') {
+      console.log('[Subscription] Subscription is not active');
+      return { isActive: false };
+    }
+
+    const expiryDate = new Date(data.expiryDate);
     const now = new Date();
     const isActive = now < expiryDate;
 
-    console.log('[Subscription] Subscription status:', { isActive, expiryDate: data.expiry_date });
+    console.log('[Subscription] Subscription status:', { isActive, expiryDate: data.expiryDate });
 
     if (!isActive) {
-      await supabase
-        .from('subscriptions')
-        .update({ status: 'expired', updated_at: new Date().toISOString() })
-        .eq('user_id', userId);
+      data.status = 'expired';
+      data.updatedAt = new Date().toISOString();
+      await AsyncStorage.setItem(
+        `${SUBSCRIPTION_STORAGE_KEY}_${userId}`,
+        JSON.stringify(data)
+      );
     }
 
-    return { isActive, expiryDate: data.expiry_date };
+    return { isActive, expiryDate: data.expiryDate };
   } catch (error) {
-    console.error('[Subscription] Error:', error);
+    const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+    console.error('[Subscription] Error checking:', errorMessage);
     return { isActive: false };
   }
 };
