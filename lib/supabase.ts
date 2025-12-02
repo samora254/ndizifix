@@ -1,9 +1,24 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { createClient } from "@supabase/supabase-js"
 import { Platform } from "react-native"
+import Constants from "expo-constants"
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || ""
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || ""
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 
+  Constants.expoConfig?.extra?.supabaseUrl || 
+  "https://rzdqfjqxkgcyekilvrid.supabase.co"
+
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 
+  Constants.expoConfig?.extra?.supabaseAnonKey || 
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6ZHFmanF4a2djeWVraWx2cmlkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2NzYzNDQsImV4cCI6MjA4MDI1MjM0NH0._EPl-l1NnU8BcSonbxr_qR7w4JiYwECGRQKu4bQHEuo"
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('[Supabase] Missing credentials:', { 
+    hasUrl: !!supabaseUrl, 
+    hasKey: !!supabaseAnonKey 
+  })
+}
+
+console.log('[Supabase] Initializing with URL:', supabaseUrl)
 
 const supabaseStorage = {
   getItem: async (key: string) => {
