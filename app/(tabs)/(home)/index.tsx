@@ -25,7 +25,7 @@ const ITEM_WIDTH = (width - ITEM_SPACING * (NUM_COLUMNS + 1)) / NUM_COLUMNS;
 export default function HomeScreen() {
   const router = useRouter();
   const { movies } = useAdmin();
-  const { isLoggedIn } = useAppState();
+  const { isLoggedIn, hasActiveSubscription } = useAppState();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -141,9 +141,16 @@ export default function HomeScreen() {
                 if (!isLoggedIn) {
                   console.log('[Auth] User not logged in, redirecting to sign-in');
                   router.push('/sign-in');
-                } else {
-                  router.push(`/(tabs)/(home)/video/${video.id}`);
+                  return;
                 }
+                
+                if (!hasActiveSubscription) {
+                  console.log('[Auth] User has no active subscription, redirecting to subscription');
+                  router.push('/subscription');
+                  return;
+                }
+                
+                router.push(`/(tabs)/(home)/video/${video.id}`);
               }}
               activeOpacity={0.9}
             >

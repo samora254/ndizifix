@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { CreditCard, Smartphone, Check, ArrowLeft } from 'lucide-react-native';
+import { CreditCard, Smartphone, Check, ArrowLeft, X } from 'lucide-react-native';
+import { WebView } from 'react-native-webview';
 import { useAppState } from '@/contexts/AppStateContext';
+import { getPayPalClientId, saveSubscription } from '@/lib/paypal';
 
 type PaymentPlatform = 'paypal' | 'mpesa' | null;
 
@@ -39,9 +41,11 @@ const PLAN_FEATURES = [
 
 export default function SubscriptionScreen() {
   const router = useRouter();
-  const { activateSubscription, isLoggedIn } = useAppState();
+  const { activateSubscription, isLoggedIn, user } = useAppState();
   const [selectedPlatform, setSelectedPlatform] = useState<PaymentPlatform>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showPayPalWebView, setShowPayPalWebView] = useState(false);
+  const [paypalUrl, setPaypalUrl] = useState('');
 
   const handlePayment = async () => {
     if (!selectedPlatform) {
@@ -49,7 +53,7 @@ export default function SubscriptionScreen() {
       return;
     }
 
-    if (!isLoggedIn) {
+    if (!isLoggedIn || !user) {
       Alert.alert('Login Required', 'Please sign in to subscribe.');
       router.push('/sign-in');
       return;
@@ -62,16 +66,80 @@ export default function SubscriptionScreen() {
       currency: platform.currency,
     });
 
-    Alert.alert(
-      'Payment Integration',
-      `Ready to process ${platform.price} payment via ${platform.name}. Please provide payment gateway credentials.`,
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-      ]
-    );
+    if (selectedPlatform === 'mpesa') {
+      Alert.alert(
+        'M-Pesa Payment',
+        'M-Pesa integration is not yet configured. Please use PayPal or contact support.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    if (selectedPlatform === 'paypal') {
+      setIsProcessing(true);
+      try {
+        const clientId = getPayPalClientId();
+        const returnUrl = encodeURIComponent('https://rork.app/payment-success');
+        const cancelUrl = encodeURIComponent('https://rork.app/payment-cancel');
+        
+        const url = `https://www.sandbox.paypal.com/webapps/billing/plans/subscribe?plan_id=P-SUBSCRIPTION-PLAN-ID&vault=true&client-id=${clientId}&return_url=${returnUrl}&cancel_url=${cancelUrl}`;
+        
+        setPaypalUrl(url);
+        setShowPayPalWebView(true);
+      } catch (error) {
+        console.error('[Subscription] Error initiating PayPal payment:', error);
+        Alert.alert('Payment Error', 'Failed to initiate PayPal payment. Please try again.');
+      } finally {
+        setIsProcessing(false);
+      }
+    }
+  };
+
+  const handleWebViewNavigationStateChange = async (navState: any) => {
+    console.log('[PayPal WebView] Navigation:', navState.url);
+
+    if (navState.url.includes('payment-success') || navState.url.includes('subscription_id=')) {
+      console.log('[PayPal] Payment successful!');
+      setShowPayPalWebView(false);
+      setIsProcessing(true);
+
+      try {
+        const urlParams = new URL(navState.url).searchParams;
+        const subscriptionId = urlParams.get('subscription_id') || urlParams.get('ba_token') || `paypal_${Date.now()}`;
+        
+        if (user) {
+          await saveSubscription(user.id, 'paypal', subscriptionId);
+          
+          const expiryDate = new Date();
+          expiryDate.setMonth(expiryDate.getMonth() + 1);
+          activateSubscription(expiryDate.toISOString());
+
+          Alert.alert(
+            'Payment Successful!',
+            'Your subscription is now active. Enjoy unlimited streaming!',
+            [
+              {
+                text: 'Start Watching',
+                onPress: () => router.replace('/(tabs)/(home)'),
+              },
+            ]
+          );
+        }
+      } catch (error) {
+        console.error('[Subscription] Error saving subscription:', error);
+        Alert.alert(
+          'Subscription Activation Error',
+          'Payment was successful but we could not activate your subscription. Please contact support.',
+          [{ text: 'OK' }]
+        );
+      } finally {
+        setIsProcessing(false);
+      }
+    } else if (navState.url.includes('payment-cancel')) {
+      console.log('[PayPal] Payment cancelled');
+      setShowPayPalWebView(false);
+      Alert.alert('Payment Cancelled', 'Your payment was cancelled.', [{ text: 'OK' }]);
+    }
   };
 
   return (
@@ -186,6 +254,38 @@ export default function SubscriptionScreen() {
           </Text>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={showPayPalWebView}
+        animationType="slide"
+        onRequestClose={() => setShowPayPalWebView(false)}
+      >
+        <SafeAreaView style={styles.webViewContainer} edges={['top']}>
+          <View style={styles.webViewHeader}>
+            <Text style={styles.webViewTitle}>Complete PayPal Payment</Text>
+            <TouchableOpacity
+              onPress={() => {
+                setShowPayPalWebView(false);
+                Alert.alert('Payment Cancelled', 'Your payment was cancelled.');
+              }}
+              style={styles.webViewCloseButton}
+            >
+              <X size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+          <WebView
+            source={{ uri: paypalUrl }}
+            onNavigationStateChange={handleWebViewNavigationStateChange}
+            startInLoadingState
+            renderLoading={() => (
+              <View style={styles.webViewLoading}>
+                <ActivityIndicator size="large" color="#003087" />
+                <Text style={styles.webViewLoadingText}>Loading PayPal...</Text>
+              </View>
+            )}
+          />
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -349,5 +449,40 @@ const styles = StyleSheet.create({
     color: '#888',
     lineHeight: 18,
   },
+  webViewContainer: {
+    flex: 1,
+    backgroundColor: '#0A0A0A',
+  },
+  webViewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2A2A2A',
+  },
+  webViewTitle: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  webViewCloseButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#1A1A1A',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  webViewLoading: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#0A0A0A',
+  },
+  webViewLoadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#888',
+  },
 });
-

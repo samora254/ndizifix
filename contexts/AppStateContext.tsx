@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
 import { supabase } from '@/lib/supabase';
+import { checkSubscription } from '@/lib/paypal';
 import { User } from '@supabase/supabase-js';
 
 export interface WatchProgress {
@@ -43,15 +44,32 @@ export const [AppStateProvider, useAppState] = createContextHook(() => {
         console.log('[Auth] Session found, user logged in:', session.user.email);
         setUser(session.user);
         setIsLoggedIn(true);
+        
+        const subscription = await checkSubscription(session.user.id);
+        console.log('[Auth] Subscription status:', subscription);
+        if (subscription.isActive) {
+          setHasActiveSubscription(true);
+          setSubscriptionExpiryDate(subscription.expiryDate);
+        }
       } else {
         console.log('[Auth] No session found');
       }
 
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
         console.log('[Auth] Auth state changed:', _event, session?.user?.email);
         if (session?.user) {
           setUser(session.user);
           setIsLoggedIn(true);
+          
+          const subscriptionStatus = await checkSubscription(session.user.id);
+          console.log('[Auth] Subscription status after auth change:', subscriptionStatus);
+          if (subscriptionStatus.isActive) {
+            setHasActiveSubscription(true);
+            setSubscriptionExpiryDate(subscriptionStatus.expiryDate);
+          } else {
+            setHasActiveSubscription(false);
+            setSubscriptionExpiryDate(undefined);
+          }
         } else {
           setUser(null);
           setIsLoggedIn(false);
@@ -191,21 +209,29 @@ export const [AppStateProvider, useAppState] = createContextHook(() => {
     setSubscriptionExpiryDate(expiryDate);
   }, []);
 
-  const checkSubscriptionStatus = useCallback(() => {
-    if (!subscriptionExpiryDate) {
+  const checkSubscriptionStatus = useCallback(async () => {
+    if (!user) {
       return false;
     }
-    const now = new Date();
-    const expiry = new Date(subscriptionExpiryDate);
-    const isActive = now < expiry;
-    
-    if (!isActive && hasActiveSubscription) {
-      console.log('[Subscription] Subscription expired');
-      setHasActiveSubscription(false);
+
+    try {
+      const subscription = await checkSubscription(user.id);
+      console.log('[Subscription] Checked subscription:', subscription);
+      
+      if (subscription.isActive) {
+        setHasActiveSubscription(true);
+        setSubscriptionExpiryDate(subscription.expiryDate);
+        return true;
+      } else {
+        setHasActiveSubscription(false);
+        setSubscriptionExpiryDate(undefined);
+        return false;
+      }
+    } catch (error) {
+      console.error('[Subscription] Error checking subscription:', error);
+      return false;
     }
-    
-    return isActive;
-  }, [subscriptionExpiryDate, hasActiveSubscription]);
+  }, [user]);
 
   return {
     likedVideoIds,
