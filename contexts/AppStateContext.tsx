@@ -34,57 +34,66 @@ export const [AppStateProvider, useAppState] = createContextHook(() => {
 
   useEffect(() => {
     loadState();
-    initializeAuth();
   }, []);
 
-  const initializeAuth = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        console.log('[Auth] Session found, user logged in:', session.user.email);
-        setUser(session.user);
-        setIsLoggedIn(true);
-        
-        const subscription = await checkSubscription(session.user.id);
-        console.log('[Auth] Subscription status:', subscription);
-        if (subscription.isActive) {
-          setHasActiveSubscription(true);
-          setSubscriptionExpiryDate(subscription.expiryDate);
-        }
-      } else {
-        console.log('[Auth] No session found');
-      }
+  useEffect(() => {
+    let authSubscription: { unsubscribe: () => void } | null = null;
 
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-        console.log('[Auth] Auth state changed:', _event, session?.user?.email);
+    const initializeAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
+          console.log('[Auth] Session found, user logged in:', session.user.email);
           setUser(session.user);
           setIsLoggedIn(true);
           
-          const subscriptionStatus = await checkSubscription(session.user.id);
-          console.log('[Auth] Subscription status after auth change:', subscriptionStatus);
-          if (subscriptionStatus.isActive) {
+          const subscription = await checkSubscription(session.user.id);
+          console.log('[Auth] Subscription status:', subscription);
+          if (subscription.isActive) {
             setHasActiveSubscription(true);
-            setSubscriptionExpiryDate(subscriptionStatus.expiryDate);
+            setSubscriptionExpiryDate(subscription.expiryDate);
+          }
+        } else {
+          console.log('[Auth] No session found');
+        }
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+          console.log('[Auth] Auth state changed:', _event, session?.user?.email);
+          if (session?.user) {
+            setUser(session.user);
+            setIsLoggedIn(true);
+            
+            const subscriptionStatus = await checkSubscription(session.user.id);
+            console.log('[Auth] Subscription status after auth change:', subscriptionStatus);
+            if (subscriptionStatus.isActive) {
+              setHasActiveSubscription(true);
+              setSubscriptionExpiryDate(subscriptionStatus.expiryDate);
+            } else {
+              setHasActiveSubscription(false);
+              setSubscriptionExpiryDate(undefined);
+            }
           } else {
+            setUser(null);
+            setIsLoggedIn(false);
             setHasActiveSubscription(false);
             setSubscriptionExpiryDate(undefined);
           }
-        } else {
-          setUser(null);
-          setIsLoggedIn(false);
-          setHasActiveSubscription(false);
-          setSubscriptionExpiryDate(undefined);
-        }
-      });
+        });
 
-      return () => {
-        subscription.unsubscribe();
-      };
-    } catch (error) {
-      console.error('[Auth] Error initializing auth:', error);
-    }
-  };
+        authSubscription = subscription;
+      } catch (error) {
+        console.error('[Auth] Error initializing auth:', error);
+      }
+    };
+
+    initializeAuth();
+
+    return () => {
+      if (authSubscription) {
+        authSubscription.unsubscribe();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (isLoaded) {
