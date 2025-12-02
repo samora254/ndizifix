@@ -9,6 +9,8 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { logout, isLoggedIn, user } = useAppState();
 
+  const isAdmin = user?.email === 'samorakibagendi254@gmail.com';
+
   const menuItems = [
     { icon: Settings, label: 'Settings', color: '#FF3B5C' },
     { icon: Bell, label: 'Notifications', color: '#3B82F6' },
@@ -82,14 +84,16 @@ export default function ProfileScreen() {
               </Text>
               <Text style={styles.userEmail}>{user?.email || 'No email'}</Text>
 
-              <TouchableOpacity
-                style={styles.adminButton}
-                onPress={() => router.push('/admin-dashboard' as any)}
-                activeOpacity={0.7}
-              >
-                <LayoutDashboard size={24} color="#FFFFFF" />
-                <Text style={styles.adminButtonText}>Admin Dashboard</Text>
-              </TouchableOpacity>
+              {isAdmin && (
+                <TouchableOpacity
+                  style={styles.adminButton}
+                  onPress={() => router.push('/admin-dashboard' as any)}
+                  activeOpacity={0.7}
+                >
+                  <LayoutDashboard size={24} color="#FFFFFF" />
+                  <Text style={styles.adminButtonText}>Admin Dashboard</Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             <View style={styles.menuSection}>
