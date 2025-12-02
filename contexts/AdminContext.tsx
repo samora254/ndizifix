@@ -356,7 +356,7 @@ export const [AdminProvider, useAdmin] = createContextHook(() => {
     );
   };
 
-  const generateDiscountCode = () => {
+  const generateDiscountCode = (discountPercentage: number) => {
     const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let code = '';
     for (let i = 0; i < 6; i++) {
@@ -365,18 +365,18 @@ export const [AdminProvider, useAdmin] = createContextHook(() => {
     
     const existingCode = discountCodes.find((dc) => dc.code === code);
     if (existingCode) {
-      return generateDiscountCode();
+      return generateDiscountCode(discountPercentage);
     }
     
     const newDiscountCode: DiscountCode = {
       code,
-      discount: 20,
+      discount: discountPercentage,
       isUsed: false,
       createdAt: new Date().toISOString(),
     };
     
     setDiscountCodes((prev) => [newDiscountCode, ...prev]);
-    console.log('[AdminContext] Generated discount code:', code);
+    console.log('[AdminContext] Generated discount code:', code, 'with', discountPercentage, '% discount');
     return code;
   };
 

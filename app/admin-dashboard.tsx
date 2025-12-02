@@ -45,6 +45,8 @@ export default function AdminDashboard() {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingMovie, setEditingMovie] = useState<Video | null>(null);
+  const [isDiscountModalVisible, setIsDiscountModalVisible] = useState(false);
+  const [discountPercentage, setDiscountPercentage] = useState('20');
   
   const [formData, setFormData] = useState<MovieFormData>({
     title: '',
@@ -151,8 +153,21 @@ export default function AdminDashboard() {
   };
 
   const handleGenerateDiscountCode = () => {
-    const code = generateDiscountCode();
-    Alert.alert('Discount Code Generated', `Code: ${code}\n\nDiscount: 20%`, [
+    setDiscountPercentage('20');
+    setIsDiscountModalVisible(true);
+  };
+
+  const handleSaveDiscountCode = () => {
+    const percentage = parseInt(discountPercentage, 10);
+    
+    if (isNaN(percentage) || percentage < 1 || percentage > 100) {
+      Alert.alert('Invalid Percentage', 'Please enter a discount percentage between 1 and 100');
+      return;
+    }
+
+    const code = generateDiscountCode(percentage);
+    setIsDiscountModalVisible(false);
+    Alert.alert('Discount Code Generated', `Code: ${code}\n\nDiscount: ${percentage}%`, [
       { text: 'OK' },
     ]);
   };
@@ -589,6 +604,59 @@ export default function AdminDashboard() {
           </View>
         </View>
       </Modal>
+
+      <Modal
+        visible={isDiscountModalVisible}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setIsDiscountModalVisible(false)}
+      >
+        <View style={styles.discountModalOverlay}>
+          <View style={styles.discountModalContent}>
+            <View style={styles.discountModalHeader}>
+              <Text style={styles.discountModalTitle}>Generate Discount Code</Text>
+              <TouchableOpacity
+                onPress={() => setIsDiscountModalVisible(false)}
+                activeOpacity={0.7}
+              >
+                <X size={24} color="#9CA3AF" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.discountModalBody}>
+              <Text style={styles.discountModalLabel}>Discount Percentage</Text>
+              <TextInput
+                style={styles.discountPercentageInput}
+                value={discountPercentage}
+                onChangeText={setDiscountPercentage}
+                placeholder="Enter percentage (1-100)"
+                placeholderTextColor="#6B7280"
+                keyboardType="numeric"
+                maxLength={3}
+              />
+              <Text style={styles.discountModalHint}>Enter a value between 1 and 100</Text>
+            </View>
+
+            <View style={styles.discountModalFooter}>
+              <TouchableOpacity
+                style={styles.discountCancelButton}
+                onPress={() => setIsDiscountModalVisible(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.discountCancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.discountSaveButton}
+                onPress={handleSaveDiscountCode}
+                activeOpacity={0.7}
+              >
+                <Ticket size={18} color="#FFFFFF" />
+                <Text style={styles.discountSaveButtonText}>Generate Code</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -993,5 +1061,97 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#9CA3AF',
     marginTop: 4,
+  },
+  discountModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  discountModalContent: {
+    backgroundColor: '#1A1A1A',
+    borderRadius: 20,
+    width: '100%',
+    maxWidth: 400,
+    overflow: 'hidden',
+  },
+  discountModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2A2A2A',
+  },
+  discountModalTitle: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  discountModalBody: {
+    padding: 24,
+  },
+  discountModalLabel: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#E5E7EB',
+    marginBottom: 12,
+  },
+  discountPercentageInput: {
+    backgroundColor: '#0A0A0A',
+    borderWidth: 2,
+    borderColor: '#2A2A2A',
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    fontSize: 24,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+    textAlign: 'center',
+  },
+  discountModalHint: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  discountModalFooter: {
+    flexDirection: 'row',
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#2A2A2A',
+  },
+  discountCancelButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#2A2A2A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  discountCancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: '#9CA3AF',
+  },
+  discountSaveButton: {
+    flex: 1,
+    flexDirection: 'row',
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#10B981',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  discountSaveButtonText: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
   },
 });

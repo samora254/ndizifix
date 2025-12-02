@@ -51,29 +51,40 @@ export default function SubscriptionScreen() {
   const [discountCode, setDiscountCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState(0);
   const [discountError, setDiscountError] = useState('');
+  const [isApplyingDiscount, setIsApplyingDiscount] = useState(false);
+  const [discountSuccessMessage, setDiscountSuccessMessage] = useState('');
 
-  const handleApplyDiscount = () => {
+  const handleApplyDiscount = async () => {
     if (!discountCode.trim()) {
       setDiscountError('Please enter a discount code');
       return;
     }
+
+    setIsApplyingDiscount(true);
+    setDiscountError('');
+    
+    await new Promise(resolve => setTimeout(resolve, 800));
 
     const validation = validateDiscountCode(discountCode.trim());
     
     if (validation.isValid) {
       setAppliedDiscount(validation.discount);
       setDiscountError('');
-      Alert.alert('Success', `${validation.discount}% discount applied!`);
+      setDiscountSuccessMessage(`${validation.discount}% discount applied successfully!`);
     } else {
       setDiscountError(validation.message);
       setAppliedDiscount(0);
+      setDiscountSuccessMessage('');
     }
+    
+    setIsApplyingDiscount(false);
   };
 
   const handleRemoveDiscount = () => {
     setDiscountCode('');
     setAppliedDiscount(0);
     setDiscountError('');
+    setDiscountSuccessMessage('');
   };
 
   const calculateFinalPrice = (originalAmount: number): number => {
@@ -261,6 +272,11 @@ export default function SubscriptionScreen() {
                         ) : (
                           <Text style={styles.pricingPrice}>{platform.price}/month</Text>
                         )}
+                        {discountSuccessMessage ? (
+                          <View style={styles.discountSuccessBanner}>
+                            <Text style={styles.discountSuccessText}>{discountSuccessMessage}</Text>
+                          </View>
+                        ) : null}
                       </View>
                       <View style={styles.featuresPreview}>
                         {PLAN_FEATURES.map((feature, index) => (
@@ -313,11 +329,16 @@ export default function SubscriptionScreen() {
                   />
                 </View>
                 <TouchableOpacity
-                  style={styles.applyButton}
+                  style={[styles.applyButton, isApplyingDiscount && styles.applyButtonDisabled]}
                   onPress={handleApplyDiscount}
+                  disabled={isApplyingDiscount}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.applyButtonText}>Apply</Text>
+                  {isApplyingDiscount ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.applyButtonText}>Apply</Text>
+                  )}
                 </TouchableOpacity>
               </View>
             )}
@@ -656,6 +677,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    minWidth: 80,
+  },
+  applyButtonDisabled: {
+    backgroundColor: '#4B5563',
+    opacity: 0.7,
   },
   applyButtonText: {
     fontSize: 16,
@@ -696,5 +722,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#EF4444',
     marginTop: 8,
+  },
+  discountSuccessBanner: {
+    backgroundColor: '#10B98120',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginTop: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#10B981',
+  },
+  discountSuccessText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#10B981',
   },
 });
