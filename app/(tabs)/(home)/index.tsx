@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import Svg, { Line } from 'react-native-svg';
 import { StatusBar } from 'expo-status-bar';
-import { useRouter, useRootNavigationState } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { categories } from '@/mocks/videos';
 import { useAdmin } from '@/contexts/AdminContext';
 import { useAppState } from '@/contexts/AppStateContext';
@@ -24,19 +24,10 @@ const ITEM_WIDTH = (width - ITEM_SPACING * (NUM_COLUMNS + 1)) / NUM_COLUMNS;
 
 export default function HomeScreen() {
   const router = useRouter();
-  const rootNavigationState = useRootNavigationState();
   const { movies } = useAdmin();
-  const { hasSeenLanding, isLoggedIn, isLoaded } = useAppState();
+  const { isLoggedIn } = useAppState();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
-
-  useEffect(() => {
-    if (!rootNavigationState?.key || !isLoaded) return;
-
-    if (!hasSeenLanding) {
-      router.replace('/landing');
-    }
-  }, [hasSeenLanding, isLoaded, rootNavigationState?.key, router]);
 
   const getMovieLabel = (releaseDate?: string) => {
     if (!releaseDate) return null;

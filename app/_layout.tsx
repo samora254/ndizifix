@@ -51,9 +51,10 @@ function RootLayoutNav() {
       <Stack.Screen name="reset-password" options={{ headerShown: false }} />
       <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
       <Stack.Screen name="terms-conditions" options={{ headerShown: false }} />
-      <Stack.Screen name="landing" options={{ headerShown: false }} />
+      <Stack.Screen name="subscription" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="series/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="movie/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="profile" options={{ headerShown: false }} />
       <Stack.Screen name="admin-dashboard" options={{ headerShown: false }} />
       <Stack.Screen name="+not-found" />
