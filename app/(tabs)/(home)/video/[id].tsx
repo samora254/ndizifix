@@ -113,12 +113,12 @@ export default function VideoScreen() {
     }
 
     return () => {
-      const cleanup = async () => {
-        if (watchProgressInterval.current) {
-          clearInterval(watchProgressInterval.current);
-        }
+      if (watchProgressInterval.current) {
+        clearInterval(watchProgressInterval.current);
+      }
 
-        const currentVideo = videoRef.current;
+      const currentVideo = videoRef.current;
+      const cleanup = async () => {
         if (currentVideo) {
           try {
             const status = await currentVideo.getStatusAsync();

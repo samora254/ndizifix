@@ -63,8 +63,8 @@ export default function MovieDetailScreen() {
     initOrientation();
 
     return () => {
+      const currentVideo = videoRef.current;
       const cleanup = async () => {
-        const currentVideo = videoRef.current;
         if (currentVideo) {
           try {
             const status = await currentVideo.getStatusAsync();

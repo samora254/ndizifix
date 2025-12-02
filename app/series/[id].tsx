@@ -72,8 +72,8 @@ export default function SeriesDetailScreen() {
     }
 
     return () => {
+      const currentVideo = videoRef.current;
       const cleanup = async () => {
-        const currentVideo = videoRef.current;
         if (currentVideo) {
           try {
             const status = await currentVideo.getStatusAsync();
