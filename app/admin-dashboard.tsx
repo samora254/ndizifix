@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Stack, useRouter } from 'expo-router';
-import { ChevronLeft, Plus, Edit2, Trash2, Film, Tv, X, Save } from 'lucide-react-native';
+import { ChevronLeft, Plus, Edit2, Trash2, Film, Tv, X, Save, Ticket, Copy, CheckCircle } from 'lucide-react-native';
 import { useAdmin } from '@/contexts/AdminContext';
 import { Video } from '@/mocks/videos';
 
@@ -22,7 +22,7 @@ const ITEM_SPACING = 8;
 const NUM_COLUMNS = 2;
 const ITEM_WIDTH = (width - ITEM_SPACING * (NUM_COLUMNS + 1)) / NUM_COLUMNS;
 
-type TabType = 'movies' | 'series';
+type TabType = 'movies' | 'series' | 'discounts';
 
 interface MovieFormData {
   title: string;
@@ -40,8 +40,9 @@ interface MovieFormData {
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const { movies, series, addMovie, updateMovie, deleteMovie, deleteSeries } = useAdmin();
+  const { movies, series, discountCodes, addMovie, updateMovie, deleteMovie, deleteSeries, generateDiscountCode, deleteDiscountCode } = useAdmin();
   const [activeTab, setActiveTab] = useState<TabType>('movies');
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingMovie, setEditingMovie] = useState<Video | null>(null);
   
@@ -149,6 +150,41 @@ export default function AdminDashboard() {
     return views.toString();
   };
 
+  const handleGenerateDiscountCode = () => {
+    const code = generateDiscountCode();
+    Alert.alert('Discount Code Generated', `Code: ${code}\n\nDiscount: 20%`, [
+      { text: 'OK' },
+    ]);
+  };
+
+  const handleCopyCode = async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopiedCode(code);
+      setTimeout(() => setCopiedCode(null), 2000);
+    } catch {
+      Alert.alert('Copy Failed', 'Could not copy code to clipboard');
+    }
+  };
+
+  const handleDeleteDiscountCode = (code: string) => {
+    Alert.alert(
+      'Confirm Delete',
+      `Are you sure you want to delete discount code "${code}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            deleteDiscountCode(code);
+            Alert.alert('Success', 'Discount code deleted');
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
@@ -179,7 +215,7 @@ export default function AdminDashboard() {
           onPress={() => setActiveTab('movies')}
           activeOpacity={0.7}
         >
-          <Film size={20} color={activeTab === 'movies' ? '#FFFFFF' : '#9CA3AF'} />
+          <Film size={18} color={activeTab === 'movies' ? '#FFFFFF' : '#9CA3AF'} />
           <Text style={[styles.tabText, activeTab === 'movies' && styles.tabTextActive]}>
             Movies ({movies.length})
           </Text>
@@ -189,20 +225,106 @@ export default function AdminDashboard() {
           onPress={() => setActiveTab('series')}
           activeOpacity={0.7}
         >
-          <Tv size={20} color={activeTab === 'series' ? '#FFFFFF' : '#9CA3AF'} />
+          <Tv size={18} color={activeTab === 'series' ? '#FFFFFF' : '#9CA3AF'} />
           <Text style={[styles.tabText, activeTab === 'series' && styles.tabTextActive]}>
             Series ({series.length})
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'discounts' && styles.tabActive]}
+          onPress={() => setActiveTab('discounts')}
+          activeOpacity={0.7}
+        >
+          <Ticket size={18} color={activeTab === 'discounts' ? '#FFFFFF' : '#9CA3AF'} />
+          <Text style={[styles.tabText, activeTab === 'discounts' && styles.tabTextActive]}>
+            Discounts ({discountCodes.length})
           </Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.gridContainer}
+        contentContainerStyle={activeTab === 'discounts' ? styles.listContainer : styles.gridContainer}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.grid}>
-          {activeTab === 'movies' ? (
+        {activeTab === 'discounts' ? (
+          <View style={styles.discountContainer}>
+            <TouchableOpacity
+              style={styles.generateButton}
+              onPress={handleGenerateDiscountCode}
+              activeOpacity={0.8}
+            >
+              <Ticket size={20} color="#FFFFFF" />
+              <Text style={styles.generateButtonText}>Generate Discount Code</Text>
+            </TouchableOpacity>
+
+            <View style={styles.discountList}>
+              {discountCodes.map((code) => (
+                <View key={code.code} style={styles.discountCard}>
+                  <View style={styles.discountHeader}>
+                    <View style={styles.discountCodeContainer}>
+                      <Text style={styles.discountCode}>{code.code}</Text>
+                      <View style={[styles.badge, code.isUsed ? styles.badgeUsed : styles.badgeActive]}>
+                        <Text style={styles.badgeText}>{code.isUsed ? 'Used' : 'Active'}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.discountValue}>{code.discount}% OFF</Text>
+                  </View>
+                  
+                  <View style={styles.discountInfo}>
+                    <Text style={styles.discountInfoText}>
+                      Created: {new Date(code.createdAt).toLocaleDateString()}
+                    </Text>
+                    {code.isUsed && code.usedAt && (
+                      <Text style={styles.discountInfoText}>
+                        Used: {new Date(code.usedAt).toLocaleDateString()}
+                      </Text>
+                    )}
+                  </View>
+
+                  <View style={styles.discountActions}>
+                    <TouchableOpacity
+                      style={[styles.discountActionButton, styles.copyButton]}
+                      onPress={() => handleCopyCode(code.code)}
+                      activeOpacity={0.7}
+                    >
+                      {copiedCode === code.code ? (
+                        <>
+                          <CheckCircle size={16} color="#10B981" />
+                          <Text style={styles.discountActionText}>Copied!</Text>
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={16} color="#3B82F6" />
+                          <Text style={styles.discountActionText}>Copy</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.discountActionButton, styles.deleteDiscountButton]}
+                      onPress={() => handleDeleteDiscountCode(code.code)}
+                      activeOpacity={0.7}
+                    >
+                      <Trash2 size={16} color="#EF4444" />
+                      <Text style={styles.discountActionText}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+              {discountCodes.length === 0 && (
+                <View style={styles.emptyState}>
+                  <Ticket size={48} color="#4B5563" />
+                  <Text style={styles.emptyStateText}>No discount codes yet</Text>
+                  <Text style={styles.emptyStateSubtext}>
+                    Generate a code to get started
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        ) : (
+          <View style={styles.grid}>
+            {activeTab === 'movies' ? (
             movies.map((movie) => (
               <View key={movie.id} style={styles.card}>
                 <View style={styles.thumbnailContainer}>
@@ -284,8 +406,9 @@ export default function AdminDashboard() {
                 </View>
               </View>
             ))
-          )}
-        </View>
+            )}
+          </View>
+        )}
       </ScrollView>
 
       <Modal
@@ -518,7 +641,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0A0A0A',
     paddingHorizontal: 20,
     paddingVertical: 12,
-    gap: 12,
+    gap: 8,
   },
   tab: {
     flex: 1,
@@ -547,6 +670,9 @@ const styles = StyleSheet.create({
   },
   gridContainer: {
     padding: ITEM_SPACING,
+  },
+  listContainer: {
+    padding: 20,
   },
   grid: {
     flexDirection: 'row',
@@ -749,5 +875,123 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600' as const,
     color: '#FFFFFF',
+  },
+  discountContainer: {
+    flex: 1,
+  },
+  generateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#10B981',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    gap: 10,
+    marginBottom: 24,
+  },
+  generateButtonText: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  discountList: {
+    gap: 12,
+  },
+  discountCard: {
+    backgroundColor: '#1A1A1A',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#2A2A2A',
+  },
+  discountHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  discountCodeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  discountCode: {
+    fontSize: 20,
+    fontWeight: '800' as const,
+    color: '#FFFFFF',
+    letterSpacing: 2,
+  },
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  badgeActive: {
+    backgroundColor: '#10B98120',
+  },
+  badgeUsed: {
+    backgroundColor: '#6B728020',
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  discountValue: {
+    fontSize: 24,
+    fontWeight: '800' as const,
+    color: '#10B981',
+  },
+  discountInfo: {
+    marginBottom: 12,
+    gap: 4,
+  },
+  discountInfoText: {
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  discountActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  discountActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 6,
+  },
+  copyButton: {
+    backgroundColor: '#3B82F615',
+    borderWidth: 1,
+    borderColor: '#3B82F6',
+  },
+  deleteDiscountButton: {
+    backgroundColor: '#EF444415',
+    borderWidth: 1,
+    borderColor: '#EF4444',
+  },
+  discountActionText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  emptyStateText: {
+    fontSize: 18,
+    fontWeight: '600' as const,
+    color: '#E5E7EB',
+    marginTop: 16,
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    marginTop: 4,
   },
 });

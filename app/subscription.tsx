@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Modal, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { CreditCard, Smartphone, Check, ArrowLeft, X } from 'lucide-react-native';
+import { CreditCard, Smartphone, Check, ArrowLeft, X, Tag } from 'lucide-react-native';
 import { WebView } from 'react-native-webview';
 import { useAppState } from '@/contexts/AppStateContext';
+import { useAdmin } from '@/contexts/AdminContext';
 import { getPayPalClientId, saveSubscription } from '@/lib/paypal';
 
 type PaymentPlatform = 'paypal' | 'mpesa' | null;
@@ -42,10 +43,45 @@ const PLAN_FEATURES = [
 export default function SubscriptionScreen() {
   const router = useRouter();
   const { activateSubscription, isLoggedIn, user } = useAppState();
+  const { validateDiscountCode, markDiscountCodeAsUsed } = useAdmin();
   const [selectedPlatform, setSelectedPlatform] = useState<PaymentPlatform>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showPayPalWebView, setShowPayPalWebView] = useState(false);
   const [paypalUrl, setPaypalUrl] = useState('');
+  const [discountCode, setDiscountCode] = useState('');
+  const [appliedDiscount, setAppliedDiscount] = useState(0);
+  const [discountError, setDiscountError] = useState('');
+
+  const handleApplyDiscount = () => {
+    if (!discountCode.trim()) {
+      setDiscountError('Please enter a discount code');
+      return;
+    }
+
+    const validation = validateDiscountCode(discountCode.trim());
+    
+    if (validation.isValid) {
+      setAppliedDiscount(validation.discount);
+      setDiscountError('');
+      Alert.alert('Success', `${validation.discount}% discount applied!`);
+    } else {
+      setDiscountError(validation.message);
+      setAppliedDiscount(0);
+    }
+  };
+
+  const handleRemoveDiscount = () => {
+    setDiscountCode('');
+    setAppliedDiscount(0);
+    setDiscountError('');
+  };
+
+  const calculateFinalPrice = (originalAmount: number): number => {
+    if (appliedDiscount > 0) {
+      return originalAmount * (1 - appliedDiscount / 100);
+    }
+    return originalAmount;
+  };
 
   const handlePayment = async () => {
     if (!selectedPlatform) {
@@ -60,9 +96,13 @@ export default function SubscriptionScreen() {
     }
 
     const platform = PAYMENT_PLATFORMS[selectedPlatform];
+    const finalAmount = calculateFinalPrice(platform.amount);
+    
     console.log('[Subscription] Initiating payment...', {
       platform: selectedPlatform,
-      amount: platform.amount,
+      originalAmount: platform.amount,
+      discount: appliedDiscount,
+      finalAmount,
       currency: platform.currency,
     });
 
@@ -113,6 +153,10 @@ export default function SubscriptionScreen() {
           const expiryDate = new Date();
           expiryDate.setMonth(expiryDate.getMonth() + 1);
           activateSubscription(expiryDate.toISOString());
+
+          if (discountCode.trim() && appliedDiscount > 0) {
+            markDiscountCodeAsUsed(discountCode.trim(), user.id);
+          }
 
           Alert.alert(
             'Payment Successful!',
@@ -203,7 +247,20 @@ export default function SubscriptionScreen() {
                     <View style={styles.pricingDetails}>
                       <View>
                         <Text style={styles.pricingLabel}>Monthly Subscription</Text>
-                        <Text style={styles.pricingPrice}>{platform.price}/month</Text>
+                        {appliedDiscount > 0 ? (
+                          <View style={styles.priceContainer}>
+                            <Text style={styles.originalPrice}>{platform.price}</Text>
+                            <Text style={styles.pricingPrice}>
+                              {platform.currency === 'KSH' ? 'KSh' : '$'}
+                              {calculateFinalPrice(platform.amount).toFixed(0)}/month
+                            </Text>
+                            <View style={styles.discountBadge}>
+                              <Text style={styles.discountBadgeText}>{appliedDiscount}% OFF</Text>
+                            </View>
+                          </View>
+                        ) : (
+                          <Text style={styles.pricingPrice}>{platform.price}/month</Text>
+                        )}
                       </View>
                       <View style={styles.featuresPreview}>
                         {PLAN_FEATURES.map((feature, index) => (
@@ -220,6 +277,56 @@ export default function SubscriptionScreen() {
             );
           })}
         </View>
+
+        {selectedPlatform && (
+          <View style={styles.discountSection}>
+            <Text style={styles.discountSectionTitle}>Have a discount code?</Text>
+            
+            {appliedDiscount > 0 ? (
+              <View style={styles.appliedDiscountContainer}>
+                <View style={styles.appliedDiscountContent}>
+                  <Tag size={20} color="#10B981" />
+                  <View style={styles.appliedDiscountInfo}>
+                    <Text style={styles.appliedDiscountCode}>{discountCode}</Text>
+                    <Text style={styles.appliedDiscountText}>{appliedDiscount}% discount applied</Text>
+                  </View>
+                </View>
+                <TouchableOpacity onPress={handleRemoveDiscount} activeOpacity={0.7}>
+                  <X size={20} color="#EF4444" />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.discountInputContainer}>
+                <View style={styles.discountInputWrapper}>
+                  <Tag size={20} color="#888" />
+                  <TextInput
+                    style={styles.discountInput}
+                    value={discountCode}
+                    onChangeText={(text) => {
+                      setDiscountCode(text.toUpperCase());
+                      setDiscountError('');
+                    }}
+                    placeholder="Enter code"
+                    placeholderTextColor="#666"
+                    autoCapitalize="characters"
+                    maxLength={6}
+                  />
+                </View>
+                <TouchableOpacity
+                  style={styles.applyButton}
+                  onPress={handleApplyDiscount}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.applyButtonText}>Apply</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            
+            {discountError ? (
+              <Text style={styles.discountErrorText}>{discountError}</Text>
+            ) : null}
+          </View>
+        )}
 
         {selectedPlatform && (
           <TouchableOpacity
@@ -241,7 +348,8 @@ export default function SubscriptionScreen() {
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <Text style={styles.subscribeButtonText}>
-                  Pay {PAYMENT_PLATFORMS[selectedPlatform].price}
+                  Pay {PAYMENT_PLATFORMS[selectedPlatform].currency === 'KSH' ? 'KSh' : '$'}
+                  {calculateFinalPrice(PAYMENT_PLATFORMS[selectedPlatform].amount).toFixed(0)}
                 </Text>
               )}
             </LinearGradient>
@@ -399,11 +507,35 @@ const styles = StyleSheet.create({
     color: '#888',
     marginBottom: 4,
   },
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+    flexWrap: 'wrap',
+  },
+  originalPrice: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: '#666',
+    textDecorationLine: 'line-through',
+  },
   pricingPrice: {
     fontSize: 32,
     fontWeight: '800' as const,
     color: '#22C55E',
     marginBottom: 16,
+  },
+  discountBadge: {
+    backgroundColor: '#22C55E',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  discountBadgeText: {
+    fontSize: 12,
+    fontWeight: '800' as const,
+    color: '#FFFFFF',
   },
   featuresPreview: {
     gap: 10,
@@ -484,5 +616,85 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: '#888',
+  },
+  discountSection: {
+    marginBottom: 24,
+  },
+  discountSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
+    marginBottom: 12,
+  },
+  discountInputContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  discountInputWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1A1A1A',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2A2A2A',
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  discountInput: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700' as const,
+    paddingVertical: 14,
+    letterSpacing: 2,
+  },
+  applyButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    backgroundColor: '#6366F1',
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  applyButtonText: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  appliedDiscountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#1A2A1A',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#10B981',
+    padding: 16,
+  },
+  appliedDiscountContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  appliedDiscountInfo: {
+    flex: 1,
+  },
+  appliedDiscountCode: {
+    fontSize: 18,
+    fontWeight: '800' as const,
+    color: '#FFFFFF',
+    letterSpacing: 2,
+  },
+  appliedDiscountText: {
+    fontSize: 14,
+    color: '#10B981',
+    marginTop: 2,
+  },
+  discountErrorText: {
+    fontSize: 14,
+    color: '#EF4444',
+    marginTop: 8,
   },
 });

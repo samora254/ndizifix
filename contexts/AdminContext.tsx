@@ -3,8 +3,18 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
 import { videos as initialVideos, series as initialSeries, Video, Series, Episode } from '@/mocks/videos';
 
+export interface DiscountCode {
+  code: string;
+  discount: number;
+  isUsed: boolean;
+  createdAt: string;
+  usedAt?: string;
+  usedBy?: string;
+}
+
 const MOVIES_STORAGE_KEY = '@admin_movies';
 const SERIES_STORAGE_KEY = '@admin_series';
+const DISCOUNT_CODES_STORAGE_KEY = '@admin_discount_codes';
 
 function parseVideoUrl(url: string): { type: 'youtube' | 'gdrive' | 'aws' | 'direct'; originalUrl: string; playableUrl: string; warning?: string } {
   const trimmedUrl = url.trim();
@@ -98,6 +108,7 @@ function parseThumbnailUrl(url: string): string {
 export const [AdminProvider, useAdmin] = createContextHook(() => {
   const [movies, setMovies] = useState<Video[]>([]);
   const [series, setSeries] = useState<Series[]>([]);
+  const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
@@ -109,13 +120,14 @@ export const [AdminProvider, useAdmin] = createContextHook(() => {
       saveData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [movies, series, isLoaded]);
+  }, [movies, series, discountCodes, isLoaded]);
 
   const loadData = async () => {
     try {
-      const [storedMovies, storedSeries] = await Promise.all([
+      const [storedMovies, storedSeries, storedDiscountCodes] = await Promise.all([
         AsyncStorage.getItem(MOVIES_STORAGE_KEY),
         AsyncStorage.getItem(SERIES_STORAGE_KEY),
+        AsyncStorage.getItem(DISCOUNT_CODES_STORAGE_KEY),
       ]);
 
       if (storedMovies) {
@@ -128,6 +140,10 @@ export const [AdminProvider, useAdmin] = createContextHook(() => {
         setSeries(JSON.parse(storedSeries));
       } else {
         setSeries(initialSeries);
+      }
+
+      if (storedDiscountCodes) {
+        setDiscountCodes(JSON.parse(storedDiscountCodes));
       }
 
       setIsLoaded(true);
@@ -144,6 +160,7 @@ export const [AdminProvider, useAdmin] = createContextHook(() => {
       await Promise.all([
         AsyncStorage.setItem(MOVIES_STORAGE_KEY, JSON.stringify(movies)),
         AsyncStorage.setItem(SERIES_STORAGE_KEY, JSON.stringify(series)),
+        AsyncStorage.setItem(DISCOUNT_CODES_STORAGE_KEY, JSON.stringify(discountCodes)),
       ]);
       console.log('[AdminContext] Data saved successfully');
     } catch (error) {
@@ -339,9 +356,69 @@ export const [AdminProvider, useAdmin] = createContextHook(() => {
     );
   };
 
+  const generateDiscountCode = () => {
+    const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      code += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    
+    const existingCode = discountCodes.find((dc) => dc.code === code);
+    if (existingCode) {
+      return generateDiscountCode();
+    }
+    
+    const newDiscountCode: DiscountCode = {
+      code,
+      discount: 20,
+      isUsed: false,
+      createdAt: new Date().toISOString(),
+    };
+    
+    setDiscountCodes((prev) => [newDiscountCode, ...prev]);
+    console.log('[AdminContext] Generated discount code:', code);
+    return code;
+  };
+
+  const validateDiscountCode = (code: string): { isValid: boolean; discount: number; message: string } => {
+    const discountCode = discountCodes.find((dc) => dc.code.toUpperCase() === code.toUpperCase());
+    
+    if (!discountCode) {
+      return { isValid: false, discount: 0, message: 'Invalid discount code' };
+    }
+    
+    if (discountCode.isUsed) {
+      return { isValid: false, discount: 0, message: 'This code has already been used' };
+    }
+    
+    return { isValid: true, discount: discountCode.discount, message: 'Valid discount code' };
+  };
+
+  const markDiscountCodeAsUsed = (code: string, userId: string) => {
+    setDiscountCodes((prev) =>
+      prev.map((dc) => {
+        if (dc.code.toUpperCase() === code.toUpperCase()) {
+          return {
+            ...dc,
+            isUsed: true,
+            usedAt: new Date().toISOString(),
+            usedBy: userId,
+          };
+        }
+        return dc;
+      })
+    );
+    console.log('[AdminContext] Marked discount code as used:', code);
+  };
+
+  const deleteDiscountCode = (code: string) => {
+    setDiscountCodes((prev) => prev.filter((dc) => dc.code !== code));
+  };
+
   return {
     movies,
     series,
+    discountCodes,
     isLoaded,
     addMovie,
     updateMovie,
@@ -352,5 +429,9 @@ export const [AdminProvider, useAdmin] = createContextHook(() => {
     addEpisodeToSeries,
     updateEpisode,
     deleteEpisode,
+    generateDiscountCode,
+    validateDiscountCode,
+    markDiscountCodeAsUsed,
+    deleteDiscountCode,
   };
 });
