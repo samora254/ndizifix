@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Stack, useRouter } from 'expo-router';
 import { Settings, Bell, HelpCircle, Shield, LogOut, ChevronLeft, LayoutDashboard } from 'lucide-react-native';
@@ -66,11 +66,16 @@ export default function ProfileScreen() {
           <>
             <View style={styles.profileSection}>
               <View style={styles.avatarContainer}>
-                <Image
-                  source={{ uri: user?.user_metadata?.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&h=200&fit=crop' }}
-                  style={styles.avatar}
-                  resizeMode="cover"
-                />
+                <View style={styles.initialsPlaceholder}>
+                  <Text style={styles.initialsText}>
+                    {(user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'U')
+                      .split(' ')
+                      .map((word: string) => word[0])
+                      .join('')
+                      .toUpperCase()
+                      .slice(0, 2)}
+                  </Text>
+                </View>
               </View>
               <Text style={styles.userName}>
                 {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}
@@ -173,9 +178,17 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#FF3B5C',
   },
-  avatar: {
+  initialsPlaceholder: {
     width: '100%',
     height: '100%',
+    backgroundColor: '#FF3B5C',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  initialsText: {
+    fontSize: 36,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
   },
   userName: {
     fontSize: 24,

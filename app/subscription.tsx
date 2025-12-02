@@ -6,36 +6,46 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { CreditCard, Smartphone, Check, ArrowLeft } from 'lucide-react-native';
 import { useAppState } from '@/contexts/AppStateContext';
 
-type PaymentMethod = 'paypal' | 'mpesa' | null;
+type PaymentPlatform = 'paypal' | 'mpesa' | null;
 
-const SUBSCRIPTION_PLANS = [
-  {
-    id: 'monthly',
-    name: 'Monthly',
-    price: 'KSh 499',
-    duration: '30 days',
-    features: ['Unlimited streaming', 'HD quality', 'Watch on any device', 'Cancel anytime'],
+const PAYMENT_PLATFORMS = {
+  mpesa: {
+    name: 'M-Pesa',
+    price: 'KSh 250',
+    currency: 'KSH',
+    amount: 250,
+    icon: Smartphone,
+    color: '#00A84F',
+    description: 'Pay with M-Pesa mobile money',
   },
-  {
-    id: 'yearly',
-    name: 'Yearly',
-    price: 'KSh 4,999',
-    duration: '365 days',
-    features: ['Unlimited streaming', 'HD quality', 'Watch on any device', 'Cancel anytime', 'Save 17%'],
-    popular: true,
+  paypal: {
+    name: 'PayPal',
+    price: '$20',
+    currency: 'USD',
+    amount: 20,
+    icon: CreditCard,
+    color: '#003087',
+    description: 'Pay securely with PayPal',
   },
+};
+
+const PLAN_FEATURES = [
+  'Unlimited streaming',
+  'HD quality',
+  'Watch on any device',
+  'Cancel anytime',
+  'Monthly subscription',
 ];
 
 export default function SubscriptionScreen() {
   const router = useRouter();
   const { activateSubscription, isLoggedIn } = useAppState();
-  const [selectedPlan, setSelectedPlan] = useState<string>('yearly');
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>(null);
+  const [selectedPlatform, setSelectedPlatform] = useState<PaymentPlatform>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handlePayment = async () => {
-    if (!selectedPaymentMethod) {
-      Alert.alert('Select Payment Method', 'Please select a payment method to continue.');
+    if (!selectedPlatform) {
+      Alert.alert('Select Payment Platform', 'Please select a payment platform to continue.');
       return;
     }
 
@@ -45,36 +55,23 @@ export default function SubscriptionScreen() {
       return;
     }
 
-    console.log('[Subscription] Processing payment...', {
-      plan: selectedPlan,
-      method: selectedPaymentMethod,
+    const platform = PAYMENT_PLATFORMS[selectedPlatform];
+    console.log('[Subscription] Initiating payment...', {
+      platform: selectedPlatform,
+      amount: platform.amount,
+      currency: platform.currency,
     });
 
-    setIsProcessing(true);
-
-    setTimeout(() => {
-      setIsProcessing(false);
-      
-      const expiryDate = new Date();
-      if (selectedPlan === 'monthly') {
-        expiryDate.setDate(expiryDate.getDate() + 30);
-      } else {
-        expiryDate.setDate(expiryDate.getDate() + 365);
-      }
-
-      activateSubscription(expiryDate.toISOString());
-
-      Alert.alert(
-        'Payment Successful!',
-        'Your subscription has been activated. Enjoy unlimited streaming!',
-        [
-          {
-            text: 'Start Watching',
-            onPress: () => router.replace('/(tabs)/(home)'),
-          },
-        ]
-      );
-    }, 2000);
+    Alert.alert(
+      'Payment Integration',
+      `Ready to process ${platform.price} payment via ${platform.name}. Please provide payment gateway credentials.`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ]
+    );
   };
 
   return (
@@ -94,125 +91,94 @@ export default function SubscriptionScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Choose Your Plan</Text>
+          <Text style={styles.title}>Subscribe Monthly</Text>
           <Text style={styles.subtitle}>
-            Unlock unlimited access to thousands of movies and series
+            Select your payment platform to get started
           </Text>
         </View>
 
-        <View style={styles.plansContainer}>
-          {SUBSCRIPTION_PLANS.map((plan) => (
-            <TouchableOpacity
-              key={plan.id}
-              style={[
-                styles.planCard,
-                selectedPlan === plan.id && styles.planCardSelected,
-              ]}
-              onPress={() => setSelectedPlan(plan.id)}
-              activeOpacity={0.7}
-            >
-              {plan.popular && (
-                <View style={styles.popularBadge}>
-                  <Text style={styles.popularText}>MOST POPULAR</Text>
-                </View>
-              )}
-              
-              <View style={styles.planHeader}>
-                <Text style={styles.planName}>{plan.name}</Text>
-                <Text style={styles.planPrice}>{plan.price}</Text>
-                <Text style={styles.planDuration}>per {plan.duration}</Text>
-              </View>
-
-              <View style={styles.featuresContainer}>
-                {plan.features.map((feature, index) => (
-                  <View key={index} style={styles.featureRow}>
-                    <Check size={18} color="#22C55E" />
-                    <Text style={styles.featureText}>{feature}</Text>
-                  </View>
-                ))}
-              </View>
-
-              {selectedPlan === plan.id && (
-                <View style={styles.selectedIndicator}>
-                  <Check size={20} color="#FFFFFF" />
-                </View>
-              )}
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <View style={styles.paymentSection}>
-          <Text style={styles.sectionTitle}>Select Payment Method</Text>
+        <View style={styles.platformsSection}>
+          <Text style={styles.sectionTitle}>Choose Payment Platform</Text>
           
-          <TouchableOpacity
-            style={[
-              styles.paymentButton,
-              selectedPaymentMethod === 'paypal' && styles.paymentButtonSelected,
-            ]}
-            onPress={() => setSelectedPaymentMethod('paypal')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.paymentIconContainer}>
-              <CreditCard size={28} color="#003087" />
-            </View>
-            <View style={styles.paymentInfo}>
-              <Text style={styles.paymentName}>PayPal</Text>
-              <Text style={styles.paymentDescription}>Pay securely with PayPal</Text>
-            </View>
-            {selectedPaymentMethod === 'paypal' && (
-              <Check size={24} color="#22C55E" />
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.paymentButton,
-              selectedPaymentMethod === 'mpesa' && styles.paymentButtonSelected,
-            ]}
-            onPress={() => setSelectedPaymentMethod('mpesa')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.paymentIconContainer}>
-              <Smartphone size={28} color="#00A84F" />
-            </View>
-            <View style={styles.paymentInfo}>
-              <Text style={styles.paymentName}>M-Pesa</Text>
-              <Text style={styles.paymentDescription}>Pay with M-Pesa mobile money</Text>
-            </View>
-            {selectedPaymentMethod === 'mpesa' && (
-              <Check size={24} color="#22C55E" />
-            )}
-          </TouchableOpacity>
+          {Object.entries(PAYMENT_PLATFORMS).map(([key, platform]) => {
+            const Icon = platform.icon;
+            const isSelected = selectedPlatform === key;
+            
+            return (
+              <TouchableOpacity
+                key={key}
+                style={[
+                  styles.platformCard,
+                  isSelected && styles.platformCardSelected,
+                ]}
+                onPress={() => setSelectedPlatform(key as PaymentPlatform)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.platformHeader}>
+                  <View style={styles.platformIconContainer}>
+                    <Icon size={32} color={platform.color} />
+                  </View>
+                  <View style={styles.platformInfo}>
+                    <Text style={styles.platformName}>{platform.name}</Text>
+                    <Text style={styles.platformDescription}>{platform.description}</Text>
+                  </View>
+                  {isSelected && (
+                    <View style={styles.checkmark}>
+                      <Check size={20} color="#FFFFFF" />
+                    </View>
+                  )}
+                </View>
+                
+                {isSelected && (
+                  <View style={styles.pricingSection}>
+                    <View style={styles.pricingDivider} />
+                    <View style={styles.pricingDetails}>
+                      <View>
+                        <Text style={styles.pricingLabel}>Monthly Subscription</Text>
+                        <Text style={styles.pricingPrice}>{platform.price}/month</Text>
+                      </View>
+                      <View style={styles.featuresPreview}>
+                        {PLAN_FEATURES.map((feature, index) => (
+                          <View key={index} style={styles.featureRow}>
+                            <Check size={16} color="#22C55E" />
+                            <Text style={styles.featureText}>{feature}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
-        <TouchableOpacity
-          style={[
-            styles.subscribeButton,
-            (!selectedPaymentMethod || isProcessing) && styles.subscribeButtonDisabled,
-          ]}
-          onPress={handlePayment}
-          disabled={!selectedPaymentMethod || isProcessing}
-          activeOpacity={0.8}
-        >
-          <LinearGradient
-            colors={
-              !selectedPaymentMethod || isProcessing
-                ? ['#333333', '#1A1A1A']
-                : ['#22C55E', '#16A34A']
-            }
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.subscribeGradient}
+        {selectedPlatform && (
+          <TouchableOpacity
+            style={[
+              styles.subscribeButton,
+              isProcessing && styles.subscribeButtonDisabled,
+            ]}
+            onPress={handlePayment}
+            disabled={isProcessing}
+            activeOpacity={0.8}
           >
-            {isProcessing ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Text style={styles.subscribeButtonText}>
-                Subscribe Now
-              </Text>
-            )}
-          </LinearGradient>
-        </TouchableOpacity>
+            <LinearGradient
+              colors={isProcessing ? ['#333333', '#1A1A1A'] : ['#22C55E', '#16A34A']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.subscribeGradient}
+            >
+              {isProcessing ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.subscribeButtonText}>
+                  Pay {PAYMENT_PLATFORMS[selectedPlatform].price}
+                </Text>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
 
         <View style={styles.infoBox}>
           <Text style={styles.infoText}>
@@ -261,104 +227,33 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
   },
-  plansContainer: {
-    gap: 16,
-    marginBottom: 32,
-  },
-  planCard: {
-    backgroundColor: '#1A1A1A',
-    borderRadius: 16,
-    padding: 24,
-    borderWidth: 2,
-    borderColor: '#2A2A2A',
-    position: 'relative' as const,
-  },
-  planCardSelected: {
-    borderColor: '#22C55E',
-    backgroundColor: '#1A2A1A',
-  },
-  popularBadge: {
-    position: 'absolute' as const,
-    top: -12,
-    left: 20,
-    backgroundColor: '#EF4444',
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  popularText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '800' as const,
-    letterSpacing: 1,
-  },
-  planHeader: {
-    marginBottom: 20,
-  },
-  planName: {
-    fontSize: 24,
-    fontWeight: '700' as const,
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  planPrice: {
-    fontSize: 36,
-    fontWeight: '800' as const,
-    color: '#22C55E',
-    marginBottom: 4,
-  },
-  planDuration: {
-    fontSize: 14,
-    color: '#888',
-  },
-  featuresContainer: {
-    gap: 12,
-  },
-  featureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  featureText: {
-    fontSize: 15,
-    color: '#CCCCCC',
-    flex: 1,
-  },
-  selectedIndicator: {
-    position: 'absolute' as const,
-    top: 20,
-    right: 20,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#22C55E',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  paymentSection: {
+  platformsSection: {
     marginBottom: 32,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700' as const,
     color: '#FFFFFF',
-    marginBottom: 16,
+    marginBottom: 20,
   },
-  paymentButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  platformCard: {
     backgroundColor: '#1A1A1A',
     borderRadius: 16,
-    padding: 20,
-    marginBottom: 12,
+    marginBottom: 16,
     borderWidth: 2,
     borderColor: '#2A2A2A',
+    overflow: 'hidden',
   },
-  paymentButtonSelected: {
+  platformCardSelected: {
     borderColor: '#22C55E',
     backgroundColor: '#1A2A1A',
   },
-  paymentIconContainer: {
+  platformHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+  },
+  platformIconContainer: {
     width: 56,
     height: 56,
     borderRadius: 12,
@@ -367,18 +262,60 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 16,
   },
-  paymentInfo: {
+  platformInfo: {
     flex: 1,
   },
-  paymentName: {
-    fontSize: 18,
+  platformName: {
+    fontSize: 20,
     fontWeight: '700' as const,
     color: '#FFFFFF',
     marginBottom: 4,
   },
-  paymentDescription: {
+  platformDescription: {
     fontSize: 14,
     color: '#888',
+  },
+  checkmark: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#22C55E',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pricingSection: {
+    paddingTop: 0,
+  },
+  pricingDivider: {
+    height: 1,
+    backgroundColor: '#2A2A2A',
+    marginHorizontal: 20,
+  },
+  pricingDetails: {
+    padding: 20,
+  },
+  pricingLabel: {
+    fontSize: 14,
+    color: '#888',
+    marginBottom: 4,
+  },
+  pricingPrice: {
+    fontSize: 32,
+    fontWeight: '800' as const,
+    color: '#22C55E',
+    marginBottom: 16,
+  },
+  featuresPreview: {
+    gap: 10,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  featureText: {
+    fontSize: 14,
+    color: '#CCCCCC',
   },
   subscribeButton: {
     borderRadius: 16,
@@ -413,3 +350,4 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 });
+
