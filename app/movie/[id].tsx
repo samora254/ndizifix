@@ -34,7 +34,7 @@ export default function MovieDetailScreen() {
   const { updateWatchProgress, isLoggedIn, hasActiveSubscription } = useAppState();
   const { movies } = useAdmin();
 
-  const currentMovie = movies.find((v) => v.id === id);
+  const currentMovie = movies?.find((v) => v.id === id);
 
   useEffect(() => {
     if (!isLoggedIn) {

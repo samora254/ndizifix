@@ -26,9 +26,9 @@ export default function MoviesScreen() {
   const { isLoggedIn } = useAppState();
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  const filteredVideos = movies.filter((video) =>
+  const filteredVideos = movies?.filter((video) =>
     searchQuery === '' ? true : video.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  ) || [];
 
   const formatViews = (views: number) => {
     if (views >= 1000000) {

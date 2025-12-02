@@ -26,9 +26,9 @@ export default function SeriesScreen() {
   const { isLoggedIn } = useAppState();
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  const filteredSeries = series.filter((s) =>
+  const filteredSeries = series?.filter((s) =>
     searchQuery === '' ? true : s.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  ) || [];
 
   const getTotalEpisodes = (seriesItem: typeof series[0]) => {
     return seriesItem.seasons.reduce((total, season) => total + season.episodes.length, 0);

@@ -46,7 +46,7 @@ export default function HomeScreen() {
     return null;
   };
 
-  const filteredVideos = movies
+  const filteredVideos = (movies || [])
     .filter((video) => 
       selectedCategory === 'All' ? true : video.category === selectedCategory
     )
