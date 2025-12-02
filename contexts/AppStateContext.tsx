@@ -15,7 +15,6 @@ interface AppState {
   likedVideoIds: string[];
   watchProgress: WatchProgress[];
   hasSeenLanding: boolean;
-  isLoggedIn: boolean;
   hasActiveSubscription: boolean;
   subscriptionExpiryDate?: string;
 }
@@ -71,9 +70,9 @@ export const [AppStateProvider, useAppState] = createContextHook(() => {
 
   useEffect(() => {
     if (isLoaded) {
-      saveState(likedVideoIds, watchProgress, hasSeenLanding, isLoggedIn, hasActiveSubscription, subscriptionExpiryDate);
+      saveState(likedVideoIds, watchProgress, hasSeenLanding, hasActiveSubscription, subscriptionExpiryDate);
     }
-  }, [likedVideoIds, watchProgress, hasSeenLanding, isLoggedIn, hasActiveSubscription, subscriptionExpiryDate, isLoaded]);
+  }, [likedVideoIds, watchProgress, hasSeenLanding, hasActiveSubscription, subscriptionExpiryDate, isLoaded]);
 
   const loadState = async () => {
     try {
@@ -83,7 +82,6 @@ export const [AppStateProvider, useAppState] = createContextHook(() => {
         setLikedVideoIds(state.likedVideoIds || []);
         setWatchProgress(state.watchProgress || []);
         setHasSeenLanding(state.hasSeenLanding || false);
-        setIsLoggedIn(state.isLoggedIn || false);
         setHasActiveSubscription(state.hasActiveSubscription || false);
         setSubscriptionExpiryDate(state.subscriptionExpiryDate);
       }
@@ -94,13 +92,12 @@ export const [AppStateProvider, useAppState] = createContextHook(() => {
     }
   };
 
-  const saveState = async (newLikedIds: string[], newProgress: WatchProgress[], seenLanding: boolean, loggedIn: boolean, subscription: boolean, expiryDate?: string) => {
+  const saveState = async (newLikedIds: string[], newProgress: WatchProgress[], seenLanding: boolean, subscription: boolean, expiryDate?: string) => {
     try {
       const state: AppState = {
         likedVideoIds: newLikedIds,
         watchProgress: newProgress,
         hasSeenLanding: seenLanding,
-        isLoggedIn: loggedIn,
         hasActiveSubscription: subscription,
         subscriptionExpiryDate: expiryDate,
       };

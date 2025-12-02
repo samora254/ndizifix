@@ -7,7 +7,7 @@ import { useAppState } from '@/contexts/AppStateContext';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { logout, isLoggedIn } = useAppState();
+  const { logout, isLoggedIn, user } = useAppState();
 
   const menuItems = [
     { icon: Settings, label: 'Settings', color: '#FF3B5C' },
@@ -67,13 +67,15 @@ export default function ProfileScreen() {
             <View style={styles.profileSection}>
               <View style={styles.avatarContainer}>
                 <Image
-                  source={{ uri: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&h=200&fit=crop' }}
+                  source={{ uri: user?.user_metadata?.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&h=200&fit=crop' }}
                   style={styles.avatar}
                   resizeMode="cover"
                 />
               </View>
-              <Text style={styles.userName}>John Doe</Text>
-              <Text style={styles.userEmail}>john.doe@example.com</Text>
+              <Text style={styles.userName}>
+                {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}
+              </Text>
+              <Text style={styles.userEmail}>{user?.email || 'No email'}</Text>
 
               <TouchableOpacity
                 style={styles.adminButton}
