@@ -89,7 +89,7 @@ export default function MovieDetailScreen() {
 
       cleanup();
     };
-  }, []);
+  }, [router, isLoggedIn, hasActiveSubscription]);
 
   useEffect(() => {
     if (currentMovie && videoRef.current && !hasAutoPlayed.current) {

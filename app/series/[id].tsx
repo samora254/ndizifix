@@ -98,7 +98,7 @@ export default function SeriesDetailScreen() {
 
       cleanup();
     };
-  }, [currentSeries, currentEpisode]);
+  }, [currentSeries, currentEpisode, router, isLoggedIn, hasActiveSubscription]);
 
   useEffect(() => {
     if (currentEpisode && videoRef.current && !hasAutoPlayed.current) {

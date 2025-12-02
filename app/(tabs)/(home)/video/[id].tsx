@@ -143,7 +143,7 @@ export default function VideoScreen() {
 
       cleanup();
     };
-  }, [id, updateWatchProgress]);
+  }, [id, updateWatchProgress, router, isLoggedIn, hasActiveSubscription]);
 
 
 

@@ -108,6 +108,7 @@ export const [AdminProvider, useAdmin] = createContextHook(() => {
     if (isLoaded) {
       saveData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [movies, series, isLoaded]);
 
   const loadData = async () => {
