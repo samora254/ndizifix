@@ -9,7 +9,17 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { logout, isLoggedIn, user } = useAppState();
 
+  console.log('[Profile] User object:', JSON.stringify(user, null, 2));
+  console.log('[Profile] User email:', user?.email);
+  console.log('[Profile] User metadata:', JSON.stringify(user?.user_metadata, null, 2));
+
   const isAdmin = user?.email === 'samorakibagendi254@gmail.com';
+  
+  console.log('[Profile] Is admin check:', { 
+    userEmail: user?.email, 
+    isAdmin, 
+    targetEmail: 'samorakibagendi254@gmail.com' 
+  });
 
   const menuItems = [
     { icon: Settings, label: 'Settings', color: '#FF3B5C' },
@@ -80,7 +90,10 @@ export default function ProfileScreen() {
                 </View>
               </View>
               <Text style={styles.userName}>
-                {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}
+                {user?.user_metadata?.full_name || 
+                 (user?.email?.split('@')[0] ? 
+                   user.email.split('@')[0].charAt(0).toUpperCase() + user.email.split('@')[0].slice(1) : 
+                   'User')}
               </Text>
               <Text style={styles.userEmail}>{user?.email || 'No email'}</Text>
 
