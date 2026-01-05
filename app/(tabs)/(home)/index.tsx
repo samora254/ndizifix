@@ -46,13 +46,17 @@ export default function HomeScreen() {
     return null;
   };
 
-  const filteredVideos = (movies || [])
-    .filter((video) => 
-      selectedCategory === 'All' ? true : video.category === selectedCategory
-    )
-    .filter((video) => 
-      searchQuery === '' ? true : video.title.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+  const filteredVideos = React.useMemo(() => {
+    if (!movies || !Array.isArray(movies)) return [];
+    
+    return movies
+      .filter((video) => 
+        selectedCategory === 'All' ? true : video.category === selectedCategory
+      )
+      .filter((video) => 
+        searchQuery === '' ? true : video.title.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+  }, [movies, selectedCategory, searchQuery]);
 
   const formatViews = (views: number) => {
     if (views >= 1000000) {

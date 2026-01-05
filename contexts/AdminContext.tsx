@@ -106,8 +106,8 @@ function parseThumbnailUrl(url: string): string {
 }
 
 export const [AdminProvider, useAdmin] = createContextHook(() => {
-  const [movies, setMovies] = useState<Video[]>([]);
-  const [series, setSeries] = useState<Series[]>([]);
+  const [movies, setMovies] = useState<Video[]>(initialVideos);
+  const [series, setSeries] = useState<Series[]>(initialSeries);
   const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
