@@ -64,14 +64,29 @@ export default function SignUpScreen() {
 
       if (data.user) {
         console.log('[Auth] Sign up successful:', data.user.email);
+        console.log('[Auth] User ID:', data.user.id);
+        console.log('[Auth] User metadata:', JSON.stringify(data.user.user_metadata));
+        console.log('[Auth] Session:', data.session ? 'exists' : 'null');
         
         if (data.session) {
           login();
-          Alert.alert(
-            'Account Created!',
-            'Your account has been created successfully.',
-            [{ text: 'OK', onPress: () => router.replace('/subscription') }]
-          );
+          
+          const isAdmin = data.user.email === 'samorakibagendi254@gmail.com';
+          console.log('[Auth] Is admin:', isAdmin);
+          
+          if (isAdmin) {
+            Alert.alert(
+              'Admin Account Created!',
+              'Your admin account has been created successfully.',
+              [{ text: 'OK', onPress: () => router.replace('/(tabs)/(home)') }]
+            );
+          } else {
+            Alert.alert(
+              'Account Created!',
+              'Your account has been created successfully.',
+              [{ text: 'OK', onPress: () => router.replace('/subscription') }]
+            );
+          }
         } else {
           Alert.alert(
             'Check Your Email',

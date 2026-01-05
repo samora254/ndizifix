@@ -41,17 +41,26 @@ export const [AppStateProvider, useAppState] = createContextHook(() => {
 
     const initializeAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('[Auth] Error getting session:', sessionError.message);
+        }
+        
         if (session?.user) {
           console.log('[Auth] Session found, user logged in:', session.user.email);
           setUser(session.user);
           setIsLoggedIn(true);
           
-          const subscription = await checkSubscription(session.user.id);
-          console.log('[Auth] Subscription status:', subscription);
-          if (subscription.isActive) {
-            setHasActiveSubscription(true);
-            setSubscriptionExpiryDate(subscription.expiryDate);
+          try {
+            const subscription = await checkSubscription(session.user.id);
+            console.log('[Auth] Subscription status:', subscription);
+            if (subscription.isActive) {
+              setHasActiveSubscription(true);
+              setSubscriptionExpiryDate(subscription.expiryDate);
+            }
+          } catch (subError) {
+            console.error('[Auth] Error checking subscription on init:', subError);
           }
         } else {
           console.log('[Auth] No session found');
@@ -63,12 +72,18 @@ export const [AppStateProvider, useAppState] = createContextHook(() => {
             setUser(session.user);
             setIsLoggedIn(true);
             
-            const subscriptionStatus = await checkSubscription(session.user.id);
-            console.log('[Auth] Subscription status after auth change:', subscriptionStatus);
-            if (subscriptionStatus.isActive) {
-              setHasActiveSubscription(true);
-              setSubscriptionExpiryDate(subscriptionStatus.expiryDate);
-            } else {
+            try {
+              const subscriptionStatus = await checkSubscription(session.user.id);
+              console.log('[Auth] Subscription status after auth change:', subscriptionStatus);
+              if (subscriptionStatus.isActive) {
+                setHasActiveSubscription(true);
+                setSubscriptionExpiryDate(subscriptionStatus.expiryDate);
+              } else {
+                setHasActiveSubscription(false);
+                setSubscriptionExpiryDate(undefined);
+              }
+            } catch (subError) {
+              console.error('[Auth] Error checking subscription on change:', subError);
               setHasActiveSubscription(false);
               setSubscriptionExpiryDate(undefined);
             }
@@ -82,8 +97,9 @@ export const [AppStateProvider, useAppState] = createContextHook(() => {
 
         authSubscription = subscription;
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
-        console.error('[Auth] Error initializing auth:', errorMessage, error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('[Auth] Error initializing auth:', errorMessage);
+        console.error('[Auth] Full error:', error);
       }
     };
 
@@ -221,6 +237,7 @@ export const [AppStateProvider, useAppState] = createContextHook(() => {
 
   const checkSubscriptionStatus = useCallback(async () => {
     if (!user) {
+      console.log('[Subscription] No user, skipping subscription check');
       return false;
     }
 
@@ -238,8 +255,9 @@ export const [AppStateProvider, useAppState] = createContextHook(() => {
         return false;
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
-      console.error('[Subscription] Error checking subscription:', errorMessage, error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('[Subscription] Error checking subscription:', errorMessage);
+      console.error('[Subscription] Full error:', error);
       return false;
     }
   }, [user]);

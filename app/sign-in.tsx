@@ -40,8 +40,20 @@ export default function SignInScreen() {
 
       if (data.user) {
         console.log('[Auth] Sign in successful:', data.user.email);
+        console.log('[Auth] User ID:', data.user.id);
+        console.log('[Auth] User metadata:', JSON.stringify(data.user.user_metadata));
         login();
-        router.replace('/subscription');
+        
+        const isAdmin = data.user.email === 'samorakibagendi254@gmail.com';
+        console.log('[Auth] Is admin:', isAdmin);
+        
+        if (isAdmin) {
+          console.log('[Auth] Admin user detected, redirecting to home');
+          router.replace('/(tabs)/(home)');
+        } else {
+          console.log('[Auth] Regular user, redirecting to subscription');
+          router.replace('/subscription');
+        }
       }
     } catch (err) {
       console.error('[Auth] Unexpected error:', err);
