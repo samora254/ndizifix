@@ -5,11 +5,11 @@ import Constants from "expo-constants"
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 
   Constants.expoConfig?.extra?.supabaseUrl || 
-  "https://rzdqfjqxkgcyekilvrid.supabase.co"
+  "https://beeddkziwymywemfphzd.supabase.co"
 
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 
   Constants.expoConfig?.extra?.supabaseAnonKey || 
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6ZHFmanF4a2djeWVraWx2cmlkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2NzYzNDQsImV4cCI6MjA4MDI1MjM0NH0._EPl-l1NnU8BcSonbxr_qR7w4JiYwECGRQKu4bQHEuo"
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJlZWRka3ppd3lteXdlbWZwaHpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5NzMyOTEsImV4cCI6MjA4MzU0OTI5MX0.WzzTB7grX-PjtnRkO8X1YZltRqwsUwsYF7SyYY_MQ-Y"
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('[Supabase] Missing credentials:', { 
